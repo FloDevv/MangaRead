@@ -47,15 +47,14 @@ export default function Player(item: Item) {
 	const lastItemRef = useRef<Item>(item);
 	const playerRef = useRef<HTMLVideoElement | null>(null);
 
-	const seasonNumber = useMemo(
-		() => item.season.match(/\d+/)?.[0].padStart(2, "0") || "00",
-		[item.season],
-	);
-
-	const episodeNumber = useMemo(
-		() => item.episode.match(/\d+/)?.[0].padStart(3, "0") || "000",
-		[item.episode],
-	);
+	const { seasonNumber, episodeNumber } = useMemo(() => {
+		const seasonMatch = item.season.match(/\d+/);
+		const episodeMatch = item.episode.match(/\d+/);
+		return {
+			seasonNumber: seasonMatch ? seasonMatch[0].padStart(2, "0") : "00",
+			episodeNumber: episodeMatch ? episodeMatch[0].padStart(3, "0") : "000",
+		};
+	}, [item.season, item.episode]);
 
 	const [videoState, setVideoState] = useState({
 		isLoading: true,
@@ -65,9 +64,8 @@ export default function Player(item: Item) {
 	const { isLoading, src } = videoState;
 
 	const getItemListAndIndex = useCallback(() => {
-		let itemList: ItemInfo[] = JSON.parse(
-			localStorage.getItem("animeInfo") || "[]",
-		);
+		const stored = localStorage.getItem("animeInfo");
+		let itemList: ItemInfo[] = stored ? JSON.parse(stored) : [];
 
 		if (itemList.length === 0) {
 			const itemInfo: ItemInfo = {
@@ -86,7 +84,7 @@ export default function Player(item: Item) {
 		const currentSrc = `/api/video?videoId=${encodeURIComponent(
 			`${item.title}/anime/Season${seasonNumber}/${seasonNumber}-${episodeNumber}.mp4`,
 		)}`;
-		setVideoState((prevState) => ({ ...prevState, src: currentSrc }));
+		setVideoState((prev) => ({ ...prev, src: currentSrc }));
 
 		return { itemList, itemIndex };
 	}, [item.title, item.season, item.episode, seasonNumber, episodeNumber]);
@@ -99,7 +97,7 @@ export default function Player(item: Item) {
 			duration?: string,
 		) => {
 			const currentSavedTime =
-				savedTime !== undefined && savedTime > 0
+				savedTime && savedTime > 0
 					? savedTime - 1
 					: itemList[itemIndex]?.savedTime || 0;
 			const currentDuration =
@@ -132,7 +130,10 @@ export default function Player(item: Item) {
 			else itemList[itemIndex] = itemInfo;
 			localStorage.setItem("animeInfo", JSON.stringify(itemList));
 
-			setVideoState((prevState) => ({ ...prevState, isLoading: false }));
+			setVideoState((prev) => {
+				if (!prev.isLoading) return prev;
+				return { ...prev, isLoading: false };
+			});
 			return itemInfo;
 		},
 		[item],

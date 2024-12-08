@@ -31,6 +31,8 @@ export default function PlayerLive() {
 	const playerRef = useRef<HTMLVideoElement | null>(null);
 	const [metadataLoaded, setMetadataLoaded] = useState(false);
 	const [isFullscreen, setIsFullscreen] = useState(false);
+	const [shouldMaintainFullscreen, setShouldMaintainFullscreen] =
+		useState(false);
 
 	const [src, setSrc] = useState("");
 	const [thumbnailSrc, setThumbnailSrc] = useState("");
@@ -85,38 +87,59 @@ export default function PlayerLive() {
 
 	const handlePlay = useCallback(
 		async (event: MediaPlayEvent) => {
-			// Fetch the latest video data when play is triggered
 			await fetchVideoData();
 
 			if (playerRef.current && videoData) {
 				playerRef.current.currentTime = videoData.elapsedTime;
 			}
 
-			if (remote && !isFullscreen) {
-				setTimeout(() => {
-					remote.enterFullscreen("prefer-media", event);
-					setIsFullscreen(true);
-				}, 2000);
+			if (remote && !document.fullscreenElement) {
+				if (document.documentElement.requestFullscreen) {
+					await document.documentElement.requestFullscreen();
+				}
+				remote.enterFullscreen("prefer-media", event);
+				setIsFullscreen(true);
 			}
 		},
-		[remote, isFullscreen, fetchVideoData, videoData],
+		[remote, fetchVideoData, videoData],
 	);
 
 	const handleVideoEnd = useCallback(() => {
-		setIsFullscreen(document.fullscreenElement !== null);
+		if (document.fullscreenElement) {
+			setShouldMaintainFullscreen(true);
+		}
 		fetchVideoData();
 	}, [fetchVideoData]);
 
-	const handleFullscreenChange = useCallback(() => {
-		setIsFullscreen(document.fullscreenElement !== null);
-	}, []);
+	useEffect(() => {
+		if (shouldMaintainFullscreen && remote && metadataLoaded) {
+			remote.enterFullscreen("prefer-media");
+			setShouldMaintainFullscreen(false);
+		}
+	}, [shouldMaintainFullscreen, remote, metadataLoaded]);
 
+	const handleFullscreenChange = useCallback(() => {
+		const isCurrentlyFullscreen = document.fullscreenElement !== null;
+		setIsFullscreen(isCurrentlyFullscreen);
+		if (!isCurrentlyFullscreen) {
+			setShouldMaintainFullscreen(false);
+		}
+	}, []);
 	useEffect(() => {
 		document.addEventListener("fullscreenchange", handleFullscreenChange);
 		return () => {
 			document.removeEventListener("fullscreenchange", handleFullscreenChange);
 		};
 	}, [handleFullscreenChange]);
+
+	useEffect(() => {
+		if (metadataLoaded && isFullscreen && remote) {
+			if (document.documentElement.requestFullscreen) {
+				document.documentElement.requestFullscreen();
+			}
+			remote.enterFullscreen("prefer-media");
+		}
+	}, [metadataLoaded, isFullscreen, remote]);
 
 	if (!videoData) {
 		return null;

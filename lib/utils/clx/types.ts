@@ -8,6 +8,8 @@ import type {
 } from "./core";
 import * as Util from "./core/util";
 
+import type { JSX } from "react";
+
 export { InferVariantProps, Variants, VariantConfig };
 
 interface InferableClassedType {

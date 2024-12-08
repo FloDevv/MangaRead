@@ -6,16 +6,18 @@ import { SeasonSelect } from "@/components/select/seasonselect";
 import type { Metadata } from "next";
 import React, { Suspense } from "react";
 interface Props {
-	params: { slug: string; season: string; episode: string };
+	params: Promise<{ slug: string; season: string; episode: string }>;
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+	const params = await props.params;
 	return {
 		title: `${decodeURIComponent(params.slug)}`,
 	};
 }
 
-export default async function Page({ params }: Props) {
+export default async function Page(props: Props) {
+	const params = await props.params;
 	const details = await getDetails(decodeURIComponent(params.slug));
 
 	if (
@@ -73,6 +75,7 @@ export default async function Page({ params }: Props) {
 						season={params.season}
 						episode={params.episode}
 						episodes={episodes ?? []}
+						// biome-ignore lint/suspicious/noExplicitAny: <explanation>
 						seasons={seasons as any}
 					/>
 				</Suspense>

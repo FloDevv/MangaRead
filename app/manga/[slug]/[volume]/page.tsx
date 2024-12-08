@@ -5,32 +5,34 @@ import { getDetails } from "@/app/types/getDetails";
 import type { Metadata } from "next";
 
 type Props = {
-	params: { slug: string; volume: string };
+	params: Promise<{ slug: string; volume: string }>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-	return {
+export async function generateMetadata(props: Props): Promise<Metadata> {
+    const params = await props.params;
+    return {
 		title: `${decodeURIComponent(params.slug)}`,
 	};
 }
 
-export default async function Page({ params }: Props) {
-	const details = await getDetails(params.slug, { mangaOnly: true });
+export default async function Page(props: Props) {
+    const params = await props.params;
+    const details = await getDetails(params.slug, { mangaOnly: true });
 
-	if (!details || !("volumes" in details) || !details.volumes) {
+    if (!details || !("volumes" in details) || !details.volumes) {
 		return <div>Error 404</div>;
 	}
 
-	const volumes = details.volumes.map((volume) => ({
+    const volumes = details.volumes.map((volume) => ({
 		name: volume.name,
 		totalPages: volume.totalPages,
 		type: volume.type,
 	}));
 
-	const volumeDetails = volumes.find((volume) => volume.name === params.volume);
-	const totalPages = volumeDetails ? volumeDetails.totalPages : 0;
+    const volumeDetails = volumes.find((volume) => volume.name === params.volume);
+    const totalPages = volumeDetails ? volumeDetails.totalPages : 0;
 
-	return (
+    return (
 		<div className="overflow-x-hidden overflow-y-hidden">
 			<div className="flex flex-wrap justify-center ">
 				<h1 className="w-full text-center text-3xl my-4">

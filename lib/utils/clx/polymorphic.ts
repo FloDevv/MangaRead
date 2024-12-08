@@ -1,6 +1,8 @@
 
 import type * as React from "react";
 
+import type { JSX } from "react";
+
 export type Merge<P1 = {}, P2 = {}> = Omit<P1, keyof P2> & P2;
 
 export type IntrinsicElement<E> = E extends ForwardRefComponent<infer I, any> ? I : never;
@@ -37,5 +39,5 @@ export interface ForwardRefComponent<
              }
            >
          : never,
- ): React.ReactElement | null;
+ ): React.ReactElement<any> | null;
 }
